@@ -1,0 +1,21 @@
+{
+  "name": "chic-mindmap",
+  "version": "1.0.0",
+  "description": "A little structure. A lot of possibility. A zero-dependency, theme-aware SVG mind map library.",
+  "type": "module",
+  "main": "./dist/chic-mindmap.umd.cjs",
+  "module": "./dist/chic-mindmap.js",
+  "types": "./dist/chic-mindmap.d.ts",
+  "exports": { ".": { "types": "./dist/chic-mindmap.d.ts", "import": "./dist/chic-mindmap.js", "require": "./dist/chic-mindmap.umd.cjs" } },
+  "files": ["dist", "README.MD", "LICENSE"],
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "start": "node scripts/dev.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "node --test test/*.test.mjs",
+    "prepack": "npm run build"
+  },
+  "keywords": ["mindmap", "svg", "visualization", "themes", "zero-dependency"],
+  "license": "MIT"
+}

@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#f7f8f5" />
+  <meta name="description" content="Give your next big idea a little space. A beautiful, zero-dependency mind map library and interactive playground." />
+  <title>chic mindmap — A little structure. A lot of possibility.</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='12' fill='%232b503c'/%3E%3Cpath d='M20 8C6 8 8 20 20 20C20 6 32 8 32 20C32 34 20 32 20 20C20 34 8 32 8 20C8 8 20 8 20 20' fill='none' stroke='%23d9ecce' stroke-width='2.5'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="./playground.css" />
+  <script type="module" src="./playground.js"></script>
+</head>
+<body>
+  <svg class="icon-definitions" aria-hidden="true"><defs>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 13A8.5 8.5 0 0 1 11 3.5 8.5 8.5 0 1 0 20.5 13Z"/></symbol>
+    <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M7 17 17 7M7 7h10v10"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-4-4 4 4 4-4M4 16v4h16v-4"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path d="m7 7-5 5 5 5m10-10 5 5-5 5m-4-13-2 20"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V3H3v13h5"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M8 5 3 10l5 5M3 10h11a6 6 0 0 1 0 12" transform="translate(0 -2)"/></symbol>
+    <symbol id="i-redo" viewBox="0 0 24 24"><path d="m16 5 5 5-5 5m5-5H10a6 6 0 0 0 0 12" transform="translate(0 -2)"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="i-fit" viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/><rect x="8" y="8" width="8" height="8" rx="1"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+    <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M19 3S7 2 5 10c-2 8 7 12 11 6 3-4 3-13 3-13ZM4 21l10-12"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H5v18h14V8l-5-5Zm0 0v5h5M8 13h8m-8 4h5"/></symbol>
+    <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3ZM21 2v4m-2-2h4"/></symbol>
+    <symbol id="i-organic" viewBox="0 0 64 38"><path d="M28 19C19 19 23 6 10 6m18 13C19 19 23 32 10 32m26-13c9 0 5-13 18-13M36 19c9 0 5 13 18 13"/><path d="M25 13c4-3 12-2 14 3 2 7-5 10-12 7-4-2-6-7-2-10Z"/><path d="M4 6h9M4 32h9M51 6h9M51 32h9"/></symbol>
+    <symbol id="i-radial" viewBox="0 0 64 38"><circle cx="32" cy="19" r="5"/><path d="m29 15-8-8m14 8 8-8M27 19H12m25 0h15M29 23l-8 8m14-8 8 8"/><circle cx="18" cy="5" r="3"/><circle cx="46" cy="5" r="3"/><circle cx="9" cy="19" r="3"/><circle cx="55" cy="19" r="3"/><circle cx="18" cy="33" r="3"/><circle cx="46" cy="33" r="3"/></symbol>
+    <symbol id="i-tree" viewBox="0 0 64 38"><rect x="25" y="2" width="14" height="8" rx="2"/><path d="M32 10v9M11 27v-8h42v8M32 19v8"/><rect x="4" y="27" width="14" height="8" rx="2"/><rect x="25" y="27" width="14" height="8" rx="2"/><rect x="46" y="27" width="14" height="8" rx="2"/></symbol>
+    <symbol id="i-matrix" viewBox="0 0 64 38"><rect x="7" y="3" width="50" height="32" rx="3"/><path d="M23 3v32M40 3v32M23 19h34M40 11h17M40 27h17"/></symbol>
+  </defs></svg>
+
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="Chic mindmap home">
+      <span class="brand-mark"><svg viewBox="0 0 36 36" aria-hidden="true"><path d="M18 18C5 18 5 5 12 5c6 0 6 13 6 13Zm0 0c0-13 13-13 13-6 0 6-13 6-13 6Zm0 0c13 0 13 13 6 13-6 0-6-13-6-13Zm0 0c0 13-13 13-13 6 0-6 13-6 13-6Z"/></svg></span>
+      <span>chic<span class="brand-light">mindmap</span><span class="brand-period">.</span></span>
+      <span class="version">v1.0</span>
+    </a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <button class="nav-link active" data-nav="playground">Playground</button>
+      <button class="nav-link" data-nav="documentation">Documentation <svg class="icon small"><use href="#i-arrow"/></svg></button>
+      <button class="nav-link" data-nav="examples">Examples</button>
+    </nav>
+    <div class="header-actions">
+      <span class="header-tag"><span class="tiny-dot"></span> Zero dependencies</span>
+      <button class="button button-dark button-small" id="get-library"><svg class="icon"><use href="#i-code"/></svg> Get the library <svg class="icon small"><use href="#i-arrow"/></svg></button>
+    </div>
+  </header>
+
+  <main>
+    <section class="intro">
+      <div><div class="eyebrow"><span class="tiny-dot"></span> A SPACE FOR YOUR IDEAS</div><h1>A little structure. <span>A lot of possibility.</span></h1><p>Turn a spark of thought into something beautifully connected.</p></div>
+      <div class="intro-actions">
+        <button class="button button-white" id="open-data-top"><svg class="icon"><use href="#i-code"/></svg> Edit data</button>
+        <div class="dropdown"><button class="button button-dark" id="export-button" aria-expanded="false" aria-controls="export-menu"><svg class="icon"><use href="#i-download"/></svg> Export map <svg class="icon small"><use href="#i-chevron"/></svg></button>
+          <div class="dropdown-menu" id="export-menu" hidden><button data-export="svg">SVG <span>Scalable vector</span></button><button data-export="png">PNG <span>High-resolution image</span></button><button data-export="json">JSON <span>Your map data</span></button></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="workspace" aria-label="Mind map playground">
+      <aside class="settings">
+        <div class="settings-heading"><h2>Make it yours</h2><svg class="icon muted"><use href="#i-sparkles"/></svg></div>
+        <section class="setting-section layout-section">
+          <div class="section-label">LAYOUT <span>01</span></div>
+          <div class="layout-grid" role="group" aria-label="Map layout">
+            <button class="layout-card selected" data-layout="organic-blob" aria-pressed="true"><span class="selected-dot"></span><svg class="layout-icon"><use href="#i-organic"/></svg><span>Organic blob</span></button>
+            <button class="layout-card" data-layout="radial-classic" aria-pressed="false"><span class="selected-dot"></span><svg class="layout-icon"><use href="#i-radial"/></svg><span>Radial classic</span></button>
+            <button class="layout-card" data-layout="tree-chart" aria-pressed="false"><span class="selected-dot"></span><svg class="layout-icon"><use href="#i-tree"/></svg><span>Tree chart</span></button>
+            <button class="layout-card" data-layout="table-matrix" aria-pressed="false"><span class="selected-dot"></span><svg class="layout-icon"><use href="#i-matrix"/></svg><span>Table matrix</span></button>
+          </div>
+          <label class="direction-row" id="direction-row" hidden>Direction<select id="direction"><option value="vertical">Top to bottom</option><option value="horizontal">Left to right</option></select></label>
+        </section>
+        <section class="setting-section">
+          <div class="section-label">COLOR STORY <span>02</span></div>
+          <div class="color-options" role="group" aria-label="Color scheme">
+            <button class="color-option selected" data-color="rainbow" aria-pressed="true"><span class="swatches rainbow"><i></i><i></i><i></i><i></i></span><span>Rainbow</span><svg class="icon check-icon"><use href="#i-check"/></svg></button>
+            <button class="color-option" data-color="gradient-branch" aria-pressed="false"><span class="swatches gradient"><i></i><i></i><i></i><i></i></span><span>Branch gradient</span><svg class="icon check-icon"><use href="#i-check"/></svg></button>
+            <button class="color-option" data-color="flat" aria-pressed="false"><span class="swatches flat"><i></i><i></i><i></i><i></i></span><span>Keep it simple</span><svg class="icon check-icon"><use href="#i-check"/></svg></button>
+          </div>
+        </section>
+        <section class="setting-section">
+          <div class="section-label">APPEARANCE <span>03</span></div>
+          <div class="theme-switch" role="group" aria-label="Color theme">
+            <button data-theme="light" aria-pressed="false"><svg class="icon"><use href="#i-sun"/></svg>Light</button>
+            <button data-theme="dark" aria-pressed="false"><svg class="icon"><use href="#i-moon"/></svg>Dark</button>
+            <button data-theme="system" class="selected" aria-pressed="true"><svg class="icon"><use href="#i-monitor"/></svg>Auto</button>
+          </div>
+          <div class="range-setting"><label for="spacing">Breathing room</label><output id="spacing-value" for="spacing">Balanced</output><input id="spacing" type="range" min="0.65" max="1.5" step="0.05" value="1"/></div>
+          <label class="toggle-row"><span>Canvas grid</span><input type="checkbox" id="grid-toggle" checked/><span class="toggle" aria-hidden="true"></span></label>
+          <label class="toggle-row"><span>Smooth transitions</span><input type="checkbox" id="animation-toggle" checked/><span class="toggle" aria-hidden="true"></span></label>
+        </section>
+        <div class="data-card"><span class="data-icon">{ }</span><div><strong>Your ideas, your data</strong><span>A simple JSON tree is all it takes.</span></div><button id="open-data-side" aria-label="Edit your JSON data"><svg class="icon"><use href="#i-arrow"/></svg></button></div>
+        <div class="sidebar-note"><svg class="icon"><use href="#i-leaf"/></svg><span>Lightweight by nature.<br/>Thoughtful by design.</span></div>
+      </aside>
+
+      <div class="canvas-panel" id="canvas-panel">
+        <div class="canvas-toolbar">
+          <div class="map-title-group"><span class="document-icon"><svg class="icon"><use href="#i-file"/></svg></span><button class="map-title" id="map-title" title="Choose an example map">Product launch <svg class="icon small"><use href="#i-chevron"/></svg></button><span class="map-badge">EXAMPLE MAP</span></div>
+          <div class="canvas-toolbar-actions"><span id="node-count" class="node-count">25 nodes</span><span class="toolbar-divider"></span><button class="icon-button" id="undo" aria-label="Undo data change" title="Undo" disabled><svg class="icon"><use href="#i-undo"/></svg></button><button class="icon-button" id="redo" aria-label="Redo data change" title="Redo" disabled><svg class="icon"><use href="#i-redo"/></svg></button><span class="toolbar-divider"></span><button class="icon-button" id="add-node" aria-label="Add a node" title="Add a node"><svg class="icon"><use href="#i-plus"/></svg></button></div>
+        </div>
+        <div class="map-area"><div id="mindmap-root"></div><div class="canvas-label"><span class="live-dot"></span> YOUR IDEAS, CONNECTED</div><button class="canvas-expand icon-button" id="fullscreen" aria-label="Toggle fullscreen" title="Fullscreen"><svg class="icon"><use href="#i-expand"/></svg></button><div class="canvas-bottom"><span class="canvas-hint"><svg class="icon"><use href="#i-info"/></svg><span>Click a branch to fold. Drag to wander.</span></span><div class="zoom-control"><button id="zoom-out" aria-label="Zoom out"><svg class="icon"><use href="#i-minus"/></svg></button><button id="zoom-value" title="Reset view" aria-label="Reset zoom">100%</button><button id="zoom-in" aria-label="Zoom in"><svg class="icon"><use href="#i-plus"/></svg></button><span></span><button id="fit" aria-label="Fit map to canvas" title="Fit to canvas"><svg class="icon"><use href="#i-fit"/></svg></button></div></div></div>
+        <div class="canvas-status"><span><span class="tiny-dot"></span> <span id="status-label">All ideas in view</span></span><span id="layout-status">Organic blob <span class="status-separator">/</span> Rainbow</span><button id="reset-map">Reset playground <svg class="icon small"><use href="#i-undo"/></svg></button></div>
+      </div>
+    </section>
+    <footer class="page-footer"><p>A tiny library for your biggest ideas.</p><div><span><svg class="icon small"><use href="#i-check"/></svg> Zero dependencies</span><span><svg class="icon small"><use href="#i-check"/></svg> Theme aware</span><span><svg class="icon small"><use href="#i-check"/></svg> Open source spirit</span></div><button id="footer-code">Made to make it yours <svg class="icon small"><use href="#i-arrow"/></svg></button></footer>
+  </main>
+
+  <dialog id="data-dialog" class="dialog data-dialog" aria-labelledby="data-title"><div class="dialog-heading"><div><div class="eyebrow">THE START OF SOMETHING</div><h2 id="data-title">Bring your own ideas.</h2><p>One root, a few branches, endless possibilities.</p></div><button class="icon-button close-dialog" aria-label="Close data editor"><svg class="icon"><use href="#i-close"/></svg></button></div><div class="editor-label"><span><svg class="icon small"><use href="#i-code"/></svg> map-data.json</span><button class="text-button" id="format-json">Format JSON</button></div><textarea id="json-editor" spellcheck="false" aria-label="Mind map JSON data"></textarea><p class="editor-error" id="json-error" role="alert"></p><div class="dialog-footer"><span>Use <code>label</code> and <code>children</code> to build your tree.</span><button class="button button-dark" id="apply-data">Apply to canvas <svg class="icon"><use href="#i-arrow"/></svg></button></div></dialog>
+
+  <dialog id="docs-dialog" class="dialog docs-dialog" aria-labelledby="docs-title"><div class="dialog-heading"><div><div class="eyebrow">SMALL FOOTPRINT. BIG POTENTIAL.</div><h2 id="docs-title">Meet your new thinking tool.</h2><p>A beautiful mind map in just a few lines. No dependencies required.</p></div><button class="icon-button close-dialog" aria-label="Close documentation"><svg class="icon"><use href="#i-close"/></svg></button></div><div class="docs-content"><h3>1. Install the library</h3><div class="install-command"><code>npm install chic-mindmap</code><button class="icon-button" data-copy="npm install chic-mindmap" aria-label="Copy install command"><svg class="icon"><use href="#i-copy"/></svg></button></div><p class="local-note">For this local package, run <code>npm install /path/to/mind-map</code>, or use the compiled files in <code>dist/</code>. Registry installation is available after publishing.</p><h3>2. Give your ideas a home</h3><pre class="code-block"><code>&lt;div id="mindmap-root" style="height: 600px"&gt;&lt;/div&gt;</code></pre><h3>3. Make the connection</h3><div class="code-wrapper"><button class="icon-button code-copy" id="copy-usage" aria-label="Copy example code"><svg class="icon"><use href="#i-copy"/></svg></button><pre class="code-block"><code id="usage-code"></code></pre></div><h3>A little API. A lot of flexibility.</h3><div class="api-table"><div><code>setTheme('dark')</code><span>Light, dark, or in sync with your system.</span></div><div><code>setStyle('radial-classic')</code><span>A fresh perspective, instantly.</span></div><div><code>setData(yourTree)</code><span>Keep your ideas growing.</span></div><div><code>setConfig({ spacing: 1.2 })</code><span>Dial in the details.</span></div><div><code>expandAll() · collapseAll()</code><span>See the big picture or focus in.</span></div><div><code>fit() · zoomIn() · zoomOut()</code><span>Find your perfect point of view.</span></div><div><code>exportSVG() · getData()</code><span>Take your thinking with you.</span></div><div><code>destroy()</code><span>Clean up listeners and observers.</span></div></div><details><summary>Using a script tag instead?</summary><pre class="code-block"><code>&lt;script src="dist/chic-mindmap.umd.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  const map = new ChicMindmap.MindMap({
+    container: document.querySelector('#mindmap-root'),
+    data: { label: 'An idea', children: [{ label: 'A possibility' }] }
+  });
+&lt;/script&gt;</code></pre></details></div></dialog>
+
+  <dialog id="examples-dialog" class="dialog examples-dialog" aria-labelledby="examples-title"><div class="dialog-heading"><div><div class="eyebrow">A LITTLE INSPIRATION</div><h2 id="examples-title">Every great idea starts somewhere.</h2><p>Pick a starting point. Follow your own branches.</p></div><button class="icon-button close-dialog" aria-label="Close examples"><svg class="icon"><use href="#i-close"/></svg></button></div><div class="examples-grid" id="examples-grid"></div></dialog>
+
+  <dialog id="node-dialog" class="dialog node-dialog" aria-labelledby="node-title"><form id="node-form"><div class="dialog-heading"><div><div class="eyebrow">KEEP IT GROWING</div><h2 id="node-title">A new possibility.</h2></div><button type="button" class="icon-button close-dialog" aria-label="Close add node"><svg class="icon"><use href="#i-close"/></svg></button></div><label class="form-field">Node label<input id="new-label" placeholder="What’s on your mind?" maxlength="200" required/></label><label class="form-field">Connect to<select id="new-parent"></select></label><div class="dialog-footer"><span>Great things start small.</span><button class="button button-dark" type="submit">Add branch <svg class="icon"><use href="#i-plus"/></svg></button></div></form></dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
