@@ -1,6 +1,8 @@
 export type Theme = 'light' | 'dark' | 'system';
 export type LayoutStyle = 'organic-blob' | 'table-matrix' | 'radial-classic' | 'tree-chart';
 export type ColorScheme = 'rainbow' | 'flat' | 'gradient-branch';
+export type LayoutDirection = 'vertical' | 'horizontal' | 'ltr' | 'rtl';
+export type TextDirection = 'auto' | 'ltr' | 'rtl';
 export interface MindMapNode {
   id?: string;
   label?: string;
@@ -8,6 +10,7 @@ export interface MindMapNode {
   text?: string;
   subtitle?: string;
   color?: string;
+  dir?: TextDirection;
   collapsed?: boolean;
   children?: MindMapNode[];
 }
@@ -15,7 +18,10 @@ export interface MindMapConfig {
   style?: LayoutStyle;
   theme?: Theme;
   colorScheme?: ColorScheme;
-  direction?: 'vertical' | 'horizontal';
+  direction?: LayoutDirection;
+  textDirection?: TextDirection;
+  depthShading?: boolean;
+  shadeStep?: number;
   spacing?: number;
   branchWidth?: number;
   grid?: boolean;
@@ -53,4 +59,4 @@ export class MindMap {
   destroy(): void;
 }
 export function normalizeData(data: MindMapNode): MindMapNode & { id: string; label: string; children: MindMapNode[] };
-export function computeLayout(data: ReturnType<typeof normalizeData>, config?: MindMapConfig, collapsed?: Set<string>): { nodes: Array<MindMapNode & { id: string; x: number; y: number; width: number; height: number; depth: number; color: string }>; edges: Array<{ source: object; target: object }>; bounds: { minX: number; minY: number; maxX: number; maxY: number } };
+export function computeLayout(data: ReturnType<typeof normalizeData>, config?: MindMapConfig, collapsed?: Set<string>): { nodes: Array<MindMapNode & { id: string; x: number; y: number; width: number; height: number; depth: number; color: string; baseColor: string; colorDepth: number; textDirection: 'ltr' | 'rtl'; collapseAnchor?: { x: number; y: number } }>; edges: Array<{ source: object; target: object }>; bounds: { minX: number; minY: number; maxX: number; maxY: number } };

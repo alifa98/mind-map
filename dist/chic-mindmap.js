@@ -7,6 +7,8 @@ const STYLES = `
 .chic-mindmap>svg{display:block;width:100%;height:100%;overflow:visible;cursor:grab;outline:none}
 .chic-mindmap>svg:active{cursor:grabbing}.chic-mindmap .cm-node{cursor:pointer;outline:none}.chic-mindmap .cm-node .cm-shape{fill:var(--node-bg);stroke:var(--border-color);stroke-width:1;filter:drop-shadow(0 2px 3px #152b1d04)}
 .chic-mindmap .cm-node.cm-main .cm-shape{fill:color-mix(in srgb,var(--accent) 9%,var(--node-bg));stroke:color-mix(in srgb,var(--accent) 24%,var(--border-color))}
+.chic-mindmap[data-depth-shading="true"] .cm-node:not(.cm-root) .cm-shape{fill:color-mix(in srgb,var(--accent) 14%,var(--node-bg));stroke:color-mix(in srgb,var(--accent) 42%,var(--border-color))}
+.chic-mindmap .cm-node .cm-label[direction="rtl"],.chic-mindmap .cm-subtitle[direction="rtl"]{letter-spacing:normal}
 .chic-mindmap .cm-node.cm-root .cm-shape{fill:var(--root-bg);stroke:var(--root-bg);filter:drop-shadow(0 5px 10px #1e473b18)}
 .chic-mindmap .cm-label{fill:var(--text-color);font-size:12px;font-weight:450;dominant-baseline:middle;pointer-events:none;user-select:none}.chic-mindmap .cm-main .cm-label{fill:color-mix(in srgb,var(--accent) 70%,var(--text-color));font-size:13px;font-weight:600}.chic-mindmap .cm-root .cm-label{fill:var(--root-text);font-size:16px;font-weight:600;letter-spacing:-.4px}.chic-mindmap .cm-subtitle{fill:var(--root-text);font-size:10px;opacity:.65;pointer-events:none;dominant-baseline:middle}.chic-mindmap .cm-dot{fill:var(--accent)}.chic-mindmap .cm-node:hover .cm-shape,.chic-mindmap .cm-node:focus-visible .cm-shape{stroke:var(--accent,#86ac93);stroke-width:2}.chic-mindmap .cm-count{fill:var(--node-bg);stroke:var(--accent);stroke-width:1}.chic-mindmap .cm-count-label{font-size:9px;fill:var(--accent);text-anchor:middle;dominant-baseline:middle;pointer-events:none}.chic-mindmap .cm-edge{pointer-events:none}.chic-mindmap[data-animate="true"] .cm-node{transition:transform .45s cubic-bezier(.2,.8,.2,1),opacity .25s}.chic-mindmap[data-animate="true"] .cm-shape,.chic-mindmap[data-animate="true"] .cm-label{transition:fill .3s,stroke .3s}.chic-mindmap .cm-selection .cm-shape{stroke:var(--accent,#6a987a);stroke-width:2}
 @keyframes chic-mindmap-appear{from{opacity:0}to{opacity:1}}
@@ -14,8 +16,40 @@ const STYLES = `
 @media(prefers-reduced-motion:reduce){.chic-mindmap,.chic-mindmap .cm-node,.chic-mindmap .cm-shape,.chic-mindmap .cm-label{transition:none!important;animation:none!important}}
 `;
 const PALETTE = ['#769c76', '#d09360', '#b9899b', '#8787b8', '#6c9caa', '#b29b64'];
-const VALID = { style: ['organic-blob', 'table-matrix', 'radial-classic', 'tree-chart'], theme: ['light', 'dark', 'system'], colorScheme: ['rainbow', 'flat', 'gradient-branch'], direction: ['horizontal', 'vertical'] };
+const VALID = { style: ['organic-blob', 'table-matrix', 'radial-classic', 'tree-chart'], theme: ['light', 'dark', 'system'], colorScheme: ['rainbow', 'flat', 'gradient-branch'], direction: ['horizontal', 'vertical', 'ltr', 'rtl'], textDirection: ['auto', 'ltr', 'rtl'] };
+const segmenter = typeof Intl !== 'undefined' && Intl.Segmenter ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
+const graphemes = text => segmenter ? Array.from(segmenter.segment(text), part => part.segment) : Array.from(text);
+const isHorizontal = direction => ['horizontal', 'ltr', 'rtl'].includes(direction);
 let instanceId = 0;
+
+function textDirection(text, preference = 'auto') {
+  if (preference !== 'auto') return preference;
+  const firstLetter = text.match(/\p{Letter}/u)?.[0] || '';
+  return /[\p{Script=Arabic}\p{Script=Hebrew}]/u.test(firstLetter) ? 'rtl' : 'ltr';
+}
+
+function shade(color, levels, step) {
+  const amount = Math.min(.6, 1 - (1 - step) ** Math.max(0, levels));
+  const rgb = [1, 3, 5].map(index => parseInt(color.slice(index, index + 2), 16));
+  return '#' + rgb.map(channel => Math.round(channel + (255 - channel) * amount).toString(16).padStart(2, '0')).join('');
+}
+
+// Measure actual shaped glyphs when attached to SVG. Truncate on grapheme
+// boundaries so Arabic diacritics, Hebrew points, and emoji stay intact.
+function fitText(text, label, available, estimatedSize) {
+  const parts = graphemes(label);
+  const measure = () => text.getComputedTextLength?.() || graphemes(text.textContent).length * estimatedSize;
+  text.textContent = label;
+  if (measure() <= available) return false;
+  let low = 0, high = parts.length;
+  while (low < high) {
+    const middle = Math.ceil((low + high) / 2);
+    text.textContent = parts.slice(0, middle).join('') + '…';
+    if (measure() <= available) low = middle; else high = middle - 1;
+  }
+  text.textContent = parts.slice(0, low).join('') + '…';
+  return true;
+}
 
 function element(tag, attrs = {}, parent) {
   const node = document.createElementNS(NS, tag);
@@ -40,8 +74,9 @@ export function normalizeData(data) {
     if (ids.has(id)) throw new TypeError(`Duplicate node id: ${id}`);
     ids.add(id);
     if (input.children !== undefined && !Array.isArray(input.children)) throw new TypeError(`children at ${path} must be an array.`);
+    if (input.dir !== undefined && !VALID.textDirection.includes(input.dir)) throw new TypeError(`Invalid text direction at ${path}: ${input.dir}`);
     active.add(input);
-    const result = { id, label: label.trim(), ...(typeof input.subtitle === 'string' ? { subtitle: input.subtitle } : {}), ...(typeof input.color === 'string' && /^#[0-9a-f]{6}$/i.test(input.color) ? { color: input.color } : {}), ...(input.collapsed ? { collapsed: true } : {}), children: (input.children || []).map((child, i) => visit(child, `${path}.${i}`, depth + 1)) };
+    const result = { id, label: label.trim(), ...(input.dir !== undefined ? { dir: input.dir } : {}), ...(typeof input.subtitle === 'string' ? { subtitle: input.subtitle } : {}), ...(typeof input.color === 'string' && /^#[0-9a-f]{6}$/i.test(input.color) ? { color: input.color } : {}), ...(input.collapsed ? { collapsed: true } : {}), children: (input.children || []).map((child, i) => visit(child, `${path}.${i}`, depth + 1)) };
     active.delete(input);
     return result;
   }
@@ -51,6 +86,8 @@ export function normalizeData(data) {
 function validateConfig(config) {
   for (const [key, options] of Object.entries(VALID)) if (config[key] !== undefined && !options.includes(config[key])) throw new TypeError(`Invalid ${key}: ${config[key]}. Expected ${options.join(', ')}.`);
   for (const key of ['spacing', 'branchWidth']) if (config[key] !== undefined && (!Number.isFinite(config[key]) || config[key] < .5 || config[key] > 3)) throw new TypeError(`${key} must be a number between 0.5 and 3.`);
+  if (config.depthShading !== undefined && typeof config.depthShading !== 'boolean') throw new TypeError('depthShading must be a boolean.');
+  if (config.shadeStep !== undefined && (!Number.isFinite(config.shadeStep) || config.shadeStep < 0 || config.shadeStep > .5)) throw new TypeError('shadeStep must be a number between 0 and 0.5.');
 }
 
 /** Theme updates only change a scoped data attribute; SVG nodes stay intact. */
@@ -87,10 +124,13 @@ export function computeLayout(data, config = {}, collapsed = new Set()) {
   const nodes = [], edges = [];
   const visible = node => collapsed.has(node.id) ? [] : node.children;
   const count = node => visible(node).length ? visible(node).reduce((sum, child) => sum + count(child), 0) : 1;
-  const width = (node, depth) => depth === 0 ? Math.max(180, Math.min(260, node.label.length * 8.5 + 55)) : Math.max(depth === 1 ? 123 : 105, Math.min(236, node.label.length * 6.8 + (depth === 1 ? 44 : 30)));
+  const width = (node, depth) => depth === 0 ? Math.max(180, Math.min(260, graphemes(node.label).length * 8.5 + 55)) : Math.max(depth === 1 ? 131 : 105, Math.min(236, graphemes(node.label).length * 6.8 + (depth === 1 ? 52 : 30)));
   const create = (node, depth, branch, x, y, parent, extra = {}) => {
-    const color = node.color || (config.colorScheme === 'flat' ? '#789982' : PALETTE[(branch + PALETTE.length) % PALETTE.length]);
-    const item = { ...node, depth, branch, x, y, width: width(node, depth), height: depth === 0 ? 79 : depth === 1 ? 41 : 33, color, ...extra };
+    const inherits = depth > 1 && !node.color;
+    const baseColor = node.color || (inherits ? parent.baseColor : config.colorScheme === 'flat' ? '#789982' : PALETTE[(branch + PALETTE.length) % PALETTE.length]);
+    const colorDepth = inherits ? parent.colorDepth : depth;
+    const color = config.depthShading ? shade(baseColor, depth - colorDepth, config.shadeStep ?? .18) : baseColor;
+    const item = { ...node, depth, branch, x, y, width: width(node, depth), height: depth === 0 ? 79 : depth === 1 ? 41 : 33, color, baseColor, colorDepth, textDirection: textDirection(node.label, node.dir ?? config.textDirection), ...extra };
     nodes.push(item);
     if (parent) edges.push({ source: parent, target: item });
     return item;
@@ -139,8 +179,8 @@ export function computeLayout(data, config = {}, collapsed = new Set()) {
     matrix(data, 0, 0, -count(data) * gap / 2, null);
   } else {
     nodes.length = 0;
-    const gap = (config.direction === 'horizontal' ? 96 : 260) * spacing;
-    const vertical = config.direction !== 'horizontal';
+    const gap = (isHorizontal(config.direction) ? 96 : 260) * spacing;
+    const vertical = !isHorizontal(config.direction);
     function tree(node, depth, branch, start, parent) {
       const position = start + count(node) * gap / 2;
       const item = create(node, depth, branch, vertical ? position : depth * 255, vertical ? depth * 140 : position, parent);
@@ -149,7 +189,29 @@ export function computeLayout(data, config = {}, collapsed = new Set()) {
     }
     tree(data, 0, 0, -count(data) * gap / 2, null);
   }
-  const bounds = nodes.reduce((b, n) => ({ minX: Math.min(b.minX, n.x - n.width / 2), maxX: Math.max(b.maxX, n.x + n.width / 2), minY: Math.min(b.minY, n.y - n.height / 2), maxY: Math.max(b.maxY, n.y + n.height / 2) }), { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity });
+  // Mirror coordinates, never glyphs, so labels remain readable in every layout.
+  if (config.direction === 'rtl') nodes.forEach(node => { node.x = -node.x; if (node.side) node.side = -node.side; });
+  // Collapse badges mark where hidden descendants would expand. Calculate this
+  // after mirroring, independently of the label's reading direction.
+  for (const node of nodes) {
+    if (!node.children.length) continue;
+    let dx = config.direction === 'rtl' ? -1 : 1, dy = 0;
+    if (style === 'organic-blob') dx = node.side || dx;
+    else if (style === 'tree-chart' && !isHorizontal(config.direction)) { dx = 0; dy = 1; }
+    else if (style === 'radial-classic' && node.depth > 0 && (node.x || node.y)) { dx = node.x; dy = node.y; }
+    const length = Math.hypot(dx, dy);
+    const edge = 1 / Math.max(Math.abs(dx) / (node.width / 2), Math.abs(dy) / (node.height / 2));
+    node.collapseAnchor = { x: dx * edge + dx / length * 5, y: dy * edge + dy / length * 5 };
+  }
+  const bounds = nodes.reduce((b, n) => {
+    const badge = collapsed.has(n.id) ? n.collapseAnchor : null;
+    return {
+      minX: Math.min(b.minX, n.x - n.width / 2, badge ? n.x + badge.x - 9 : Infinity),
+      maxX: Math.max(b.maxX, n.x + n.width / 2, badge ? n.x + badge.x + 9 : -Infinity),
+      minY: Math.min(b.minY, n.y - n.height / 2, badge ? n.y + badge.y - 9 : Infinity),
+      maxY: Math.max(b.maxY, n.y + n.height / 2, badge ? n.y + badge.y + 9 : -Infinity)
+    };
+  }, { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity });
   return { nodes, edges, bounds };
 }
 
@@ -170,7 +232,7 @@ export class MindMap {
     config = Object.fromEntries(Object.entries(config).filter(([, value]) => value !== undefined));
     validateConfig(config);
     this.data = normalizeData(data);
-    this.config = { style: 'organic-blob', theme: 'system', colorScheme: 'rainbow', spacing: 1, branchWidth: 1, grid: true, animate: true, direction: 'vertical', ...config };
+    this.config = { style: 'organic-blob', theme: 'system', colorScheme: 'rainbow', spacing: 1, branchWidth: 1, grid: true, animate: true, direction: 'vertical', textDirection: 'auto', depthShading: false, shadeStep: .18, ...config };
     this.container = container;
     this.id = `cm-${++instanceId}`;
     this.collapsed = new Set();
@@ -182,10 +244,11 @@ export class MindMap {
     this.container.classList.add('chic-mindmap');
     this.container.dataset.grid = String(this.config.grid);
     this.container.dataset.animate = String(this.config.animate);
+    this.container.dataset.depthShading = String(this.config.depthShading);
     if (!document.querySelector('style[data-chic-mindmap]')) {
       const style = document.createElement('style'); style.dataset.chicMindmap = ''; style.textContent = STYLES; document.head.append(style);
     }
-    this.svg = element('svg', { role: 'group', 'aria-label': 'Interactive mind map. Use the arrow keys to pan, plus or minus to zoom, and zero to fit.', tabindex: '0' }, this.container);
+    this.svg = element('svg', { role: 'group', direction: 'ltr', 'aria-label': 'Interactive mind map. Use the arrow keys to pan, plus or minus to zoom, and zero to fit.', tabindex: '0' }, this.container);
     this.defs = element('defs', {}, this.svg);
     this.stage = element('g', {}, this.svg);
     this.edgeLayer = element('g', { 'aria-hidden': 'true' }, this.stage);
@@ -238,10 +301,10 @@ export class MindMap {
     const organic = this.config.style === 'organic-blob';
     const side = b.x >= a.x ? 1 : -1;
     let x1 = a.x, y1 = a.y, x2 = b.x, y2 = b.y;
-    if (organic || (this.config.style === 'tree-chart' && this.config.direction === 'horizontal')) { x1 += a.width / 2 * side - side * 2; x2 -= b.width / 2 * side - side * 2; }
+    if (organic || (this.config.style === 'tree-chart' && isHorizontal(this.config.direction))) { x1 += a.width / 2 * side - side * 2; x2 -= b.width / 2 * side - side * 2; }
     else if (this.config.style === 'tree-chart') { y1 += a.height / 2; y2 -= b.height / 2; }
-    let paint = this.config.colorScheme === 'flat' ? 'var(--branch-stroke)' : b.color;
-    if (this.config.colorScheme !== 'flat') {
+    let paint = this.config.colorScheme === 'flat' && !this.config.depthShading && b.baseColor === '#789982' ? 'var(--branch-stroke)' : b.color;
+    if (this.config.colorScheme !== 'flat' || this.config.depthShading) {
       const gradient = element('linearGradient', { id: `${this.id}-g${index}`, gradientUnits: 'userSpaceOnUse', x1, y1, x2, y2 }, this.defs);
       element('stop', { offset: '0%', 'stop-color': a.depth === 0 ? (this.config.colorScheme === 'gradient-branch' ? '#658b74' : b.color) : a.color, 'stop-opacity': a.depth === 0 ? '.65' : '.8' }, gradient);
       element('stop', { offset: '100%', 'stop-color': b.color, 'stop-opacity': '1' }, gradient);
@@ -250,7 +313,7 @@ export class MindMap {
     if (organic && a.depth === 0) element('path', { class: 'cm-edge', d: taperedPath(x1, y1, x2, y2, 9 * this.config.branchWidth, 2 * this.config.branchWidth), fill: paint, opacity: '.8' }, this.edgeLayer);
     else {
       let d = `M${x1},${y1}C${(x1 + x2) / 2},${y1} ${(x1 + x2) / 2},${y2} ${x2},${y2}`;
-      if (this.config.style === 'tree-chart' && this.config.direction !== 'horizontal') d = `M${x1},${y1}C${x1},${(y1 + y2) / 2} ${x2},${(y1 + y2) / 2} ${x2},${y2}`;
+      if (this.config.style === 'tree-chart' && !isHorizontal(this.config.direction)) d = `M${x1},${y1}C${x1},${(y1 + y2) / 2} ${x2},${(y1 + y2) / 2} ${x2},${y2}`;
       if (this.config.style === 'radial-classic') d = `M${x1},${y1}Q${x1 * .35 + x2 * .65},${y1} ${x2},${y2}`;
       element('path', { class: 'cm-edge', d, stroke: paint, 'stroke-width': Math.max(1, 2.2 - a.depth * .35) * this.config.branchWidth, fill: 'none', 'stroke-linecap': 'round', opacity: '.65' }, this.edgeLayer);
     }
@@ -269,16 +332,19 @@ export class MindMap {
     if (node.depth === 0 && this.config.style === 'organic-blob') {
       element('path', { class: 'cm-shape', d: `M${-w / 2 + 25},${-h / 2 + 3}C${-w / 2 + 47},${-h / 2 - 5} ${w / 2 - 44},${-h / 2 - 6} ${w / 2 - 19},${-h / 2 + 6}C${w / 2 + 7},${-h / 2 + 18} ${w / 2 + 7},${h / 2 - 10} ${w / 2 - 19},${h / 2 - 3}C${w / 2 - 44},${h / 2 + 7} ${-w / 2 + 32},${h / 2 + 4} ${-w / 2 + 15},${h / 2 - 3}C${-w / 2 - 9},${h / 2 - 15} ${-w / 2 - 2},${-h / 2 + 13} ${-w / 2 + 25},${-h / 2 + 3}Z` }, group);
     } else element('rect', { class: 'cm-shape', x: -w / 2 + (node.matrix ? 1 : 0), y: -h / 2 + (node.matrix ? 1 : 0), width: w - (node.matrix ? 2 : 0), height: h - (node.matrix ? 2 : 0), rx: node.matrix ? 5 : node.depth === 0 ? 16 : 8 }, group);
-    if (node.depth === 1) element('circle', { class: 'cm-dot', cx: -w / 2 + 17, cy: 0, r: 3.2 }, group);
-    const maxChars = Math.floor((w - (node.depth === 1 ? 47 : 25)) / (node.depth === 0 ? 8.3 : 6.6));
-    const label = node.label.length > maxChars ? node.label.slice(0, maxChars - 1) + '…' : node.label;
-    const text = element('text', { class: 'cm-label', x: node.depth === 1 ? -w / 2 + 28 : 0, y: node.depth === 0 && node.subtitle ? -7 : 1, 'text-anchor': node.depth === 1 ? 'start' : 'middle' }, group);
-    text.textContent = label;
-    if (label !== node.label) { const title = element('title', {}, group); title.textContent = node.label; }
-    if (node.depth === 0 && node.subtitle) { const sub = element('text', { class: 'cm-subtitle', x: 0, y: 15, 'text-anchor': 'middle' }, group); sub.textContent = node.subtitle.length > 32 ? node.subtitle.slice(0, 31) + '…' : node.subtitle; }
+    const rtl = node.textDirection === 'rtl';
+    if (node.depth === 1) element('circle', { class: 'cm-dot', cx: rtl ? w / 2 - 17 : -w / 2 + 17, cy: 0, r: 3.2 }, group);
+    const text = element('text', { class: 'cm-label', direction: node.textDirection, 'unicode-bidi': 'isolate', x: node.depth === 1 ? (rtl ? w / 2 - 28 : -w / 2 + 28) : 0, y: node.depth === 0 && node.subtitle ? -7 : 1, 'text-anchor': node.depth === 1 ? 'start' : 'middle' }, group);
+    let truncated = fitText(text, node.label, w - (node.depth === 1 ? 47 : 25), node.depth === 0 ? 8.3 : 6.6);
+    if (node.depth === 0 && node.subtitle) {
+      const sub = element('text', { class: 'cm-subtitle', direction: textDirection(node.subtitle, node.dir ?? this.config.textDirection), 'unicode-bidi': 'isolate', x: 0, y: 15, 'text-anchor': 'middle' }, group);
+      truncated = fitText(sub, node.subtitle, w - 28, 5.5) || truncated;
+    }
+    if (truncated) { const title = element('title', {}, group); title.textContent = node.label + (node.subtitle ? ` — ${node.subtitle}` : ''); }
     if (this.collapsed.has(node.id) && node.children.length) {
-      element('circle', { class: 'cm-count', cx: w / 2 + 5, cy: 0, r: 9 }, group);
-      const count = element('text', { class: 'cm-count-label', x: w / 2 + 5, y: 1 }, group); count.textContent = String(node.children.length);
+      const { x, y } = node.collapseAnchor;
+      element('circle', { class: 'cm-count', cx: x, cy: y, r: 9 }, group);
+      const count = element('text', { class: 'cm-count-label', direction: 'ltr', 'unicode-bidi': 'isolate', x, y: y + 1 }, group); count.textContent = String(node.children.length);
     }
     const activate = () => {
       this.selectedId = node.id;
@@ -314,12 +380,13 @@ export class MindMap {
   setConfig(config) {
     config = Object.fromEntries(Object.entries(config).filter(([, value]) => value !== undefined));
     validateConfig(config);
-    const layoutKeys = ['style', 'colorScheme', 'direction', 'spacing', 'branchWidth'];
+    const layoutKeys = ['style', 'colorScheme', 'direction', 'textDirection', 'depthShading', 'shadeStep', 'spacing', 'branchWidth'];
     const shouldRender = layoutKeys.some(key => key in config && config[key] !== this.config[key]);
     Object.assign(this.config, config);
     if ('theme' in config) this.setTheme(config.theme);
     if ('grid' in config) this.container.dataset.grid = String(config.grid);
     if ('animate' in config) this.container.dataset.animate = String(config.animate);
+    if ('depthShading' in config) this.container.dataset.depthShading = String(config.depthShading);
     if (shouldRender) this.render();
     return this;
   }
@@ -335,6 +402,7 @@ export class MindMap {
   exportSVG() {
     const clone = this.svg.cloneNode(true), b = this.layout.bounds, pad = 40;
     clone.setAttribute('xmlns', NS); clone.setAttribute('class', 'chic-mindmap'); clone.setAttribute('data-theme', this.themeManager.resolved);
+    clone.setAttribute('data-depth-shading', String(this.config.depthShading));
     clone.setAttribute('width', String(Math.ceil(b.maxX - b.minX + pad * 2))); clone.setAttribute('height', String(Math.ceil(b.maxY - b.minY + pad * 2)));
     clone.setAttribute('viewBox', `${b.minX - pad} ${b.minY - pad} ${b.maxX - b.minX + pad * 2} ${b.maxY - b.minY + pad * 2}`);
     clone.querySelector('g').removeAttribute('transform');
@@ -346,6 +414,6 @@ export class MindMap {
   destroy() {
     if (this.destroyed) return;
     this.destroyed = true; this.observer?.disconnect(); this.themeManager.destroy(); this.listeners.forEach(remove => remove()); this.svg.remove(); this.container.classList.remove('chic-mindmap');
-    for (const key of ['theme', 'grid', 'animate']) delete this.container.dataset[key];
+    for (const key of ['theme', 'grid', 'animate', 'depthShading']) delete this.container.dataset[key];
   }
 }
